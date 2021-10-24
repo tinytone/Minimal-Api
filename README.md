@@ -8,6 +8,9 @@ This project is based off this youtube video:
 
 Original Source code repo: https://github.com/raw-coding-youtube/aspnetcore-mini-api
 
+2 Projects exist within the [Minimal-Api](https://github.com/tinytone/Minimal-Api/blob/master/Minimal-Api.sln) solution:
+- [API](https://github.com/tinytone/Minimal-Api/tree/master/Api) - contains a minimal Api project with various /blog endpoints and 1 /test endpoint.
+- [MVC](https://github.com/tinytone/Minimal-Api/tree/master/MVC) - contains a similar /test endpoint as the Api project for benchmarking comparisons.
 
 # Testing out the Minimal Api
 
@@ -68,7 +71,7 @@ $ curl --location --request GET 'http://localhost:5000/blogs/0'
 
 Testing out the /test endpoint:
 
-```
+```bash
 $ curl -i -X POST -H "Content-Type: application/json" -d "{\"title\":\"test body\"}" "http://localhost:5000/test/1?v=test"
 HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
@@ -93,6 +96,60 @@ This correctly:
 - strips out the title from the Json Body (value = Mr)
 
 All 3 inputs are stripped out and returned in the result: Mr_1_Tony
+
+```c#
+    [ApiController]
+    public class TestController : ControllerBase
+    {
+        [HttpPost("/test/{id}")]
+        public object GetBlog(int id, [FromQuery] string surname, [FromBody] TestRequest request)
+        {
+            return new
+            {
+                result = $"{request.Title}_{id}_{surname}"
+            };
+        }
+
+        public class TestRequest
+        {
+            public string Title { get; set; }
+        }
+    }
+```
+
+The above code will automatically bind and string out the various inputs from the QueryString, Body and route.
+
+In the Minimal Api project, this has been hand written via various interfaces:
+- [IFromQuery](https://github.com/tinytone/Minimal-Api/blob/master/Api/Framework/IFromQuery.cs)
+- [IFromRoute](https://github.com/tinytone/Minimal-Api/blob/master/Api/Framework/IFromRoute.cs)
+- [IFromJsonBody](https://github.com/tinytone/Minimal-Api/blob/master/Api/Framework/IFromJsonBody.cs)
+
+The **TestRequest** class (in the [Test.cs](https://github.com/tinytone/Minimal-Api/blob/master/Api/Services/Blogs/Test.cs) file)in the minimal Api project then has 3 ways of extracting the various inputs from the QueryString, Route and body:
+
+```c#
+    public class TestRequest : IRequest<object>, IFromJsonBody, IFromRoute, IFromQuery
+    {
+        public string Title { get; set; }
+
+        public int FromRoute { get; set; }
+
+        public string FromQuery { get; set; }
+
+        public void BindFromQuery(IQueryCollection queryCollection)
+        {
+            if (queryCollection.TryGetValue("v", out var v))
+            {
+                this.FromQuery = v;
+            }
+        }
+
+        public void BindFromRoute(RouteValueDictionary routeValues)
+        {
+            this.FromRoute = routeValues.GetInt("id");
+        }
+    }
+```
+
 
 # Assembly Scanning
 
