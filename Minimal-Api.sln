@@ -5,12 +5,15 @@ VisualStudioVersion = 17.0.31717.71
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{69448308-5F1C-4F32-BF32-9340C1123DE9}"
 	ProjectSection(SolutionItems) = preProject
+		performance_test.linq = performance_test.linq
 		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Api", "Api\Api.csproj", "{EDEF34B5-1087-46ED-97D1-77987AB51F1D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MVC", "MVC\MVC.csproj", "{ABA255C5-C385-4F9A-8AA7-543F8CEB798B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nbomber-netcore", "Nbomber-netcore\Nbomber-netcore.csproj", "{459D035E-501B-465A-86E5-F7C8258F91E9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +29,10 @@ Global
 		{ABA255C5-C385-4F9A-8AA7-543F8CEB798B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ABA255C5-C385-4F9A-8AA7-543F8CEB798B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ABA255C5-C385-4F9A-8AA7-543F8CEB798B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{459D035E-501B-465A-86E5-F7C8258F91E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{459D035E-501B-465A-86E5-F7C8258F91E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{459D035E-501B-465A-86E5-F7C8258F91E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{459D035E-501B-465A-86E5-F7C8258F91E9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

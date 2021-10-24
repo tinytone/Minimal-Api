@@ -15,11 +15,11 @@ namespace MVC.Controllers
         }
 
         [HttpPost("/test/{id}")]
-        public object GetBlog(int id, [FromQuery] string surname, [FromBody] TestRequest request)
+        public object GetBlog(int id, [FromQuery] string v, [FromBody] TestRequest request)
         {
             return new
             {
-                result = $"{request.Title}_{id}_{surname}"
+                result = $"{request.Title}_{id}_{v}"
             };
         }
 

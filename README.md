@@ -224,5 +224,230 @@ e.g. Navigate to http://localhost:5283/blogs/0
 
 # Performance Testing
 
-Use Nbomber to test performance between the API and MVC projects:
+Use [Nbomber](https://github.com/PragmaticFlow/NBomber) to test performance between the API and MVC projects:
 
+Note: Nick Chapsas talks about NBomber in [this](https://www.youtube.com/watch?v=mwHWPoKEmyY&t=143s) video.
+
+### Using LinqPad 6 to run NBomber
+
+The benchmarking comparison tests have been written in linq file which is associated with linqpad.
+
+I downloaded LinqPad 6 from [here](https://www.linqpad.net/Download.aspx)
+
+This is the benchmarking code within the [performance_test.linq](https://github.com/tinytone/Minimal-Api/blob/master/performance_test.linq) file:
+
+```c#
+void Main()
+{
+	var factory = HttpClientFactory.Create();
+	var content = JsonContent.Create(new {title = "test title"});
+
+	var mvc = Step.Create("mvc", factory, async context =>
+	{
+		var response = await context.Client.PostAsync("http://localhost:5001/test/1?v=test", content);
+
+		return response.IsSuccessStatusCode
+			? Response.Ok(statusCode: (int) response.StatusCode)
+			: Response.Fail(statusCode: (int) response.StatusCode);
+	});
+
+	var minApi = Step.Create("min_api", factory, async context =>
+	{
+		var response = await context.Client.PostAsync("http://localhost:5000/test/1?v=test", content);
+
+		return response.IsSuccessStatusCode
+			? Response.Ok(statusCode: (int)response.StatusCode)
+			: Response.Fail(statusCode: (int)response.StatusCode);
+	});
+
+	var mvc_scenario = ScenarioBuilder
+		.CreateScenario("mvc_scenario", mvc)
+		.WithWarmUpDuration(TimeSpan.FromSeconds(10))
+		.WithLoadSimulations(Simulation.KeepConstant(24, TimeSpan.FromSeconds(60)));
+
+	var minApiScenario = ScenarioBuilder
+		.CreateScenario("min_api_scenario", minApi)
+		.WithWarmUpDuration(TimeSpan.FromSeconds(10))
+		.WithLoadSimulations(Simulation.KeepConstant(24, TimeSpan.FromSeconds(60)));
+		
+	NBomberRunner
+	.RegisterScenarios(minApiScenario, mvc_scenario)
+	.Run();
+}
+```
+
+- Ensure both the API and MVC projects are started and running
+- Run the benchmarks using linqpad
+
+### Results:
+
+```
+  _   _   ____                        _                                        
+ | \ | | | __ )    ___    _ __ ___   | |__     ___   _ __                      
+ |  \| | |  _ \   / _ \  | '_ ` _ \  | '_ \   / _ \ | '__|                     
+ | |\  | | |_) | | (_) | | | | | | | | |_) | |  __/ | |                        
+ |_| \_| |____/   \___/  |_| |_| |_| |_.__/   \___| |_|                        
+                                                                                
+15:43:50 [INF] NBomber '2.1.1' Started a new session:
+'2021-10-24_14.43.88_session_fc0e313f'.
+15:43:51 [INF] NBomber started as single node.
+15:43:51 [INF] Plugins: no plugins were loaded.
+15:43:51 [INF] Reporting sinks: no reporting sinks were loaded.
+15:43:51 [INF] Starting init...
+15:43:51 [INF] Target scenarios: 'min_api_scenario', 'mvc_scenario'.
+15:43:51 [INF] Init finished.
+15:43:51 [INF] Starting warm up...
+15:44:02 [INF] Starting bombing...
+15:45:04 [INF] Stopping scenarios...
+15:45:04 [INF] Calculating final statistics...
+
+────────────────────────────────── test info ───────────────────────────────────
+
+test suite: 'nbomber_default_test_suite_name'
+test name: 'nbomber_default_test_name'
+
+──────────────────────────────── scenario stats ────────────────────────────────
+
+scenario: 'min_api_scenario'
+duration: '00:01:00', ok count: 369672, fail count: 0, all data: 0 MB
+load simulation: 'keep_constant', copies: 24, during: '00:01:00'
+┌────────────────────┬─────────────────────────────────────────────────────┐
+│               step │ ok stats                                            │
+├────────────────────┼─────────────────────────────────────────────────────┤
+│               name │ min_api                                             │
+│      request count │ all = 369672, ok = 369672, RPS = 6161.2             │
+│            latency │ min = 0.34, mean = 3.89, max = 75.11, StdDev = 3.28 │
+│ latency percentile │ 50% = 3.16, 75% = 4.1, 95% = 8.24, 99% = 17.44      │
+└────────────────────┴─────────────────────────────────────────────────────┘
+
+status codes for scenario: min_api_scenario
+┌─────────────┬────────┬─────────┐
+│ status code │ count  │ message │
+├─────────────┼────────┼─────────┤
+│         200 │ 369672 │         │
+└─────────────┴────────┴─────────┘
+
+scenario: 'mvc_scenario'
+duration: '00:01:00', ok count: 406111, fail count: 0, all data: 0 MB
+load simulation: 'keep_constant', copies: 24, during: '00:01:00'
+┌────────────────────┬────────────────────────────────────────────────────┐
+│               step │ ok stats                                           │
+├────────────────────┼────────────────────────────────────────────────────┤
+│               name │ mvc                                                │
+│      request count │ all = 406111, ok = 406111, RPS = 6768.5            │
+│            latency │ min = 0.28, mean = 3.54, max = 74.7, StdDev = 3.77 │
+│ latency percentile │ 50% = 2.64, 75% = 3.67, 95% = 8.42, 99% = 19.89    │
+└────────────────────┴────────────────────────────────────────────────────┘
+
+status codes for scenario: mvc_scenario
+┌─────────────┬────────┬─────────┐
+│ status code │ count  │ message │
+├─────────────┼────────┼─────────┤
+│         200 │ 406111 │         │
+└─────────────┴────────┴─────────┘
+
+──────────────────────────────────── hints ─────────────────────────────────────
+
+hint for Scenario 'min_api_scenario':
+Step 'min_api' in scenario 'min_api_scenario' didn't track data transfer. In 
+order to track data transfer, you should use Response.Ok(sizeInBytes: value)
+
+hint for Scenario 'mvc_scenario':
+Step 'mvc' in scenario 'mvc_scenario' didn't track data transfer. In order to 
+track data transfer, you should use Response.Ok(sizeInBytes: value)
+
+15:45:04 [INF] Reports saved in folder:
+'C:\Users\{My User}\AppData\Local\Temp\LINQPad6\_cvziirun\shadow-1\reports\2021-10-24_14.43.88_session_fc0e313f'
+```
+
+Interesting - the Requests per Second (RPS) where as follows:
+
+- Minimal Api: 6161.2
+- MVC: 6768.5
+
+The MVC code outperformed the MinApi code which is different to the youtube results by Nick Chapsas and Raw coding.
+
+The MVC controller isn't using Mediatr or Validation so would perform quicker due to less middleware code.
+
+# Summary
+
+Minimal Api's now give you a table of contents of all your routes in your program file, where you can see what's Anonymous and what's Admin controlled:
+
+```c#
+Anonymous(
+    app.MapGet<GetBlogsRequest>("/blogs"),
+    app.MapGet<GetBlogRequest>("/blogs/{id}"),
+    app.MapPost<TestRequest>("/test/{id}")
+);
+
+Admin(
+    app.MapPost<CreateBlogRequest>("/admin/blogs")
+);
+```
+
+### Using .Net Core 3.1 to run NBomber
+
+A 3rd project has been added to run the NBomber benchmark comparison. This is a Console Application written in .net core 3 as higher versions of .net core don't appear to be supported by Nbomber.
+
+Running NBomber:
+
+```powershell
+PS C:\SourceCode\GitHub\Minimal-Api\Nbomber-netcore\bin\Debug\netcoreapp3.1> .\Nbomber-netcore.exe
+```
+
+When using this project, the results were favourable towards the Minimal Api:
+
+- Minimal Api: 20545.7 RPS
+- MVC: 12235.2 RPS
+
+```powershell
+scenario: 'min_api_scenario'
+duration: '00:01:00', ok count: 1232741, fail count: 0, all data: 0 MB
+load simulation: 'keep_constant', copies: 24, during: '00:01:00'
+┌────────────────────┬─────────────────────────────────────────────────────┐
+│               step │ ok stats                                            │
+├────────────────────┼─────────────────────────────────────────────────────┤
+│               name │ min_api                                             │
+│      request count │ all = 1232741, ok = 1232741, RPS = 20545.7          │
+│            latency │ min = 0.12, mean = 1.16, max = 54.89, StdDev = 2.15 │
+│ latency percentile │ 50% = 0.64, 75% = 0.93, 95% = 4.38, 99% = 10.19     │
+└────────────────────┴─────────────────────────────────────────────────────┘
+
+status codes for scenario: min_api_scenario
+┌─────────────┬─────────┬─────────┐
+│ status code │  count  │ message │
+├─────────────┼─────────┼─────────┤
+│         200 │ 1232741 │         │
+└─────────────┴─────────┴─────────┘
+
+scenario: 'mvc_scenario'
+duration: '00:01:00', ok count: 734109, fail count: 0, all data: 0 MB
+load simulation: 'keep_constant', copies: 24, during: '00:01:00'
+┌────────────────────┬────────────────────────────────────────────────────┐
+│               step │ ok stats                                           │
+├────────────────────┼────────────────────────────────────────────────────┤
+│               name │ mvc                                                │
+│      request count │ all = 734109, ok = 734109, RPS = 12235.2           │
+│            latency │ min = 0.16, mean = 1.95, max = 61.7, StdDev = 3.44 │
+│ latency percentile │ 50% = 0.85, 75% = 1.62, 95% = 7.06, 99% = 21.65    │
+└────────────────────┴────────────────────────────────────────────────────┘
+
+status codes for scenario: mvc_scenario
+┌─────────────┬────────┬─────────┐
+│ status code │ count  │ message │
+├─────────────┼────────┼─────────┤
+│         200 │ 734109 │         │
+└─────────────┴────────┴─────────┘
+
+──────────────────────────────────────────────────────── hints ─────────────────────────────────────────────────────────
+
+hint for Scenario 'min_api_scenario':
+Step 'min_api' in scenario 'min_api_scenario' didn't track data transfer. In order to track data transfer, you should
+use Response.Ok(sizeInBytes: value)
+
+hint for Scenario 'mvc_scenario':
+Step 'mvc' in scenario 'mvc_scenario' didn't track data transfer. In order to track data transfer, you should use
+Response.Ok(sizeInBytes: value)
+
+16:22:56 [INF] Reports saved in folder:
+```
