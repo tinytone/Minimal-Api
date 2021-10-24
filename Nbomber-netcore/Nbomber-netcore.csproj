@@ -2,14 +2,13 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>Nbomber_netcore</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="NBomber" Version="2.1.1" />
     <PackageReference Include="NBomber.Http" Version="2.0.1" />
-    <PackageReference Include="System.Net.Http.Json" Version="5.0.0" />
   </ItemGroup>
 
 </Project>

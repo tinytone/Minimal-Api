@@ -8,10 +8,10 @@ This project is based off this youtube video:
 
 Original Source code repo: https://github.com/raw-coding-youtube/aspnetcore-mini-api
 
-2 Projects exist within the [Minimal-Api](https://github.com/tinytone/Minimal-Api/blob/master/Minimal-Api.sln) solution:
-- [API](https://github.com/tinytone/Minimal-Api/tree/master/Api) - contains a minimal Api project with various /blog endpoints and 1 /test endpoint.
-- [MVC](https://github.com/tinytone/Minimal-Api/tree/master/MVC) - contains a similar /test endpoint as the Api project for benchmarking comparisons.
-
+3 Projects exist within the [Minimal-Api](https://github.com/tinytone/Minimal-Api/blob/master/Minimal-Api.sln) solution:
+- [API](https://github.com/tinytone/Minimal-Api/tree/master/Api) - (.net 6) contains a minimal Api project with various /blog endpoints and 1 /test endpoint.
+- [MVC](https://github.com/tinytone/Minimal-Api/tree/master/MVC) - (.net 6) contains a similar /test endpoint as the Api project for benchmarking comparisons.
+- [Nbomber-netcore](https://github.com/tinytone/Minimal-Api/tree/master/Nbomber-netcore) - (.net 6) Runs benchmark comparison tests between the API and MVC projects.
 # Testing out the Minimal Api
 
 ### Creating Blog Data
@@ -31,6 +31,10 @@ Transfer-Encoding: chunked
 {"id":1,"title":"boi","createdBy":"bob master 3000","posts":[]}
 ```
 
+- This uses an endpoint that requires Administrative permissions. (/admin/blogs)
+- The user principle is mocked and hardcoded to be "bob master 3000" within the code. 
+- This user is retrieved and set against the createdby field.
+
 ### Retrieving Blog Data:
 
 Get Blog with Id 1:
@@ -46,6 +50,8 @@ $ curl --location --request GET 'http://localhost:5000/blogs/1'
 }
 ```
 
+- This assumes the previous "create blog" command has run as the database as in memory.
+
 Get all Blogs:
     
 ```
@@ -60,6 +66,8 @@ $ curl --location --request GET 'http://localhost:5000/blogs'
     }
 ]
 ```
+
+Failure Scenario:
 
 This should fail Validation as the Id need to be greater than 0.
 
@@ -157,13 +165,13 @@ The **TestRequest** class (in the [Test.cs](https://github.com/tinytone/Minimal-
 
 The Fluent Validators are added automatically using reflection and Assembly Scanning:
 
-program.cs:
+[program.cs](https://github.com/tinytone/Minimal-Api/blob/master/Api/Program.cs):
 
 ```c#
 builder.Services.AddApiServices();
 ```
 
-RegisterServices.cs:
+[RegisterServices.cs](https://github.com/tinytone/Minimal-Api/blob/master/Api/RegisterServices.cs):
 
 
 ```c#
@@ -194,7 +202,7 @@ public static IServiceCollection AddValidation<T>(this IServiceCollection servic
 }
 ```
 
-This Validator class would reside within the Mediatr handler e.g. GetBlog.cs
+This Validator class would reside within the Mediatr handler e.g. [GetBlog.cs](https://github.com/tinytone/Minimal-Api/blob/master/Api/Services/Blogs/GetBlog.cs)
 
 ```c#
     public class GetBlogRequestValidation : AbstractValidator<GetBlogRequest>
@@ -225,6 +233,8 @@ e.g. Navigate to http://localhost:5283/blogs/0
 # Performance Testing
 
 Use [Nbomber](https://github.com/PragmaticFlow/NBomber) to test performance between the API and MVC projects:
+
+>Very simple load testing framework for Pull and Push scenarios. It's 100% written in F# and targeting .NET Core and full .NET Framework.
 
 Note: Nick Chapsas talks about NBomber in [this](https://www.youtube.com/watch?v=mwHWPoKEmyY&t=143s) video.
 
@@ -360,7 +370,7 @@ track data transfer, you should use Response.Ok(sizeInBytes: value)
 'C:\Users\{My User}\AppData\Local\Temp\LINQPad6\_cvziirun\shadow-1\reports\2021-10-24_14.43.88_session_fc0e313f'
 ```
 
-Interesting - the Requests per Second (RPS) where as follows:
+Interesting - the Requests per Second (RPS) were as follows:
 
 - Minimal Api: 6161.2
 - MVC: 6768.5
@@ -368,6 +378,78 @@ Interesting - the Requests per Second (RPS) where as follows:
 The MVC code outperformed the MinApi code which is different to the youtube results by Nick Chapsas and Raw coding.
 
 The MVC controller isn't using Mediatr or Validation so would perform quicker due to less middleware code.
+
+### Using .Net 6.0 to run NBomber
+
+A 3rd project has been added to run the NBomber benchmark comparison. 
+
+This is a Console Application written in .net 6.
+
+Running NBomber:
+
+```powershell
+PS C:\SourceCode\GitHub\Minimal-Api\Nbomber-netcore\bin\Release\net6.0> .\Nbomber-netcore.exe
+```
+
+When using this project, the results were favourable towards the Minimal Api:
+
+- Minimal Api: 21501.3 RPS
+- MVC: 14926 RPS
+
+```powershell
+scenario: 'min_api_scenario'
+duration: '00:01:00', ok count: 1290078, fail count: 0, all data: 0 MB
+load simulation: 'keep_constant', copies: 24, during: '00:01:00'
+┌────────────────────┬────────────────────────────────────────────────────┐
+│               step │ ok stats                                           │
+├────────────────────┼────────────────────────────────────────────────────┤
+│               name │ min_api                                            │
+│      request count │ all = 1290078, ok = 1290078, RPS = 21501.3         │
+│            latency │ min = 0.13, mean = 1.11, max = 75.7, StdDev = 2.22 │
+│ latency percentile │ 50% = 0.6, 75% = 0.89, 95% = 3.85, 99% = 9.84      │
+└────────────────────┴────────────────────────────────────────────────────┘
+
+status codes for scenario: min_api_scenario
+┌─────────────┬─────────┬─────────┐
+│ status code │  count  │ message │
+├─────────────┼─────────┼─────────┤
+│         200 │ 1290078 │         │
+└─────────────┴─────────┴─────────┘
+
+scenario: 'mvc_scenario'
+duration: '00:01:00', ok count: 895560, fail count: 0, all data: 0 MB
+load simulation: 'keep_constant', copies: 24, during: '00:01:00'
+┌────────────────────┬────────────────────────────────────────────────────┐
+│               step │ ok stats                                           │
+├────────────────────┼────────────────────────────────────────────────────┤
+│               name │ mvc                                                │
+│      request count │ all = 895560, ok = 895560, RPS = 14926             │
+│            latency │ min = 0.11, mean = 1.6, max = 63.52, StdDev = 2.87 │
+│ latency percentile │ 50% = 0.74, 75% = 1.29, 95% = 5.8, 99% = 15.01     │
+└────────────────────┴────────────────────────────────────────────────────┘
+
+status codes for scenario: mvc_scenario
+┌─────────────┬────────┬─────────┐
+│ status code │ count  │ message │
+├─────────────┼────────┼─────────┤
+│         200 │ 895560 │         │
+└─────────────┴────────┴─────────┘
+
+──────────────────────────────────────────────────────── hints ─────────────────────────────────────────────────────────
+
+hint for Scenario 'min_api_scenario':
+Step 'min_api' in scenario 'min_api_scenario' didn't track data transfer. In order to track data transfer, you should
+use Response.Ok(sizeInBytes: value)
+
+hint for Scenario 'mvc_scenario':
+Step 'mvc' in scenario 'mvc_scenario' didn't track data transfer. In order to track data transfer, you should use
+Response.Ok(sizeInBytes: value)
+
+16:33:38 [INF] Reports saved in folder:
+'C:\SourceCode\GitHub\Minimal-Api\Nbomber-netcore\bin\Release\net6.0\reports\2021
+-10-24_15.32.84_session_29bcba45'
+PS C:\SourceCode\GitHub\Minimal-Api\Nbomber-netcore\bin\Release\net6.0> .\Nbomber-netcore.exe
+```
 
 # Summary
 
@@ -383,71 +465,4 @@ Anonymous(
 Admin(
     app.MapPost<CreateBlogRequest>("/admin/blogs")
 );
-```
-
-### Using .Net Core 3.1 to run NBomber
-
-A 3rd project has been added to run the NBomber benchmark comparison. This is a Console Application written in .net core 3 as higher versions of .net core don't appear to be supported by Nbomber.
-
-Running NBomber:
-
-```powershell
-PS C:\SourceCode\GitHub\Minimal-Api\Nbomber-netcore\bin\Debug\netcoreapp3.1> .\Nbomber-netcore.exe
-```
-
-When using this project, the results were favourable towards the Minimal Api:
-
-- Minimal Api: 20545.7 RPS
-- MVC: 12235.2 RPS
-
-```powershell
-scenario: 'min_api_scenario'
-duration: '00:01:00', ok count: 1232741, fail count: 0, all data: 0 MB
-load simulation: 'keep_constant', copies: 24, during: '00:01:00'
-┌────────────────────┬─────────────────────────────────────────────────────┐
-│               step │ ok stats                                            │
-├────────────────────┼─────────────────────────────────────────────────────┤
-│               name │ min_api                                             │
-│      request count │ all = 1232741, ok = 1232741, RPS = 20545.7          │
-│            latency │ min = 0.12, mean = 1.16, max = 54.89, StdDev = 2.15 │
-│ latency percentile │ 50% = 0.64, 75% = 0.93, 95% = 4.38, 99% = 10.19     │
-└────────────────────┴─────────────────────────────────────────────────────┘
-
-status codes for scenario: min_api_scenario
-┌─────────────┬─────────┬─────────┐
-│ status code │  count  │ message │
-├─────────────┼─────────┼─────────┤
-│         200 │ 1232741 │         │
-└─────────────┴─────────┴─────────┘
-
-scenario: 'mvc_scenario'
-duration: '00:01:00', ok count: 734109, fail count: 0, all data: 0 MB
-load simulation: 'keep_constant', copies: 24, during: '00:01:00'
-┌────────────────────┬────────────────────────────────────────────────────┐
-│               step │ ok stats                                           │
-├────────────────────┼────────────────────────────────────────────────────┤
-│               name │ mvc                                                │
-│      request count │ all = 734109, ok = 734109, RPS = 12235.2           │
-│            latency │ min = 0.16, mean = 1.95, max = 61.7, StdDev = 3.44 │
-│ latency percentile │ 50% = 0.85, 75% = 1.62, 95% = 7.06, 99% = 21.65    │
-└────────────────────┴────────────────────────────────────────────────────┘
-
-status codes for scenario: mvc_scenario
-┌─────────────┬────────┬─────────┐
-│ status code │ count  │ message │
-├─────────────┼────────┼─────────┤
-│         200 │ 734109 │         │
-└─────────────┴────────┴─────────┘
-
-──────────────────────────────────────────────────────── hints ─────────────────────────────────────────────────────────
-
-hint for Scenario 'min_api_scenario':
-Step 'min_api' in scenario 'min_api_scenario' didn't track data transfer. In order to track data transfer, you should
-use Response.Ok(sizeInBytes: value)
-
-hint for Scenario 'mvc_scenario':
-Step 'mvc' in scenario 'mvc_scenario' didn't track data transfer. In order to track data transfer, you should use
-Response.Ok(sizeInBytes: value)
-
-16:22:56 [INF] Reports saved in folder:
 ```
